@@ -52,13 +52,9 @@ async def on_message(message):
         await start_timer(10, message.channel)
 
 
-<<<<<<< HEAD
-client.run(DISCORD_TOKEN)
-=======
 
 @bot.command()
 async def hello(ctx):
     await ctx.send(f"Hello {ctx.author.mention}!")
 
 bot.run(DISCORD_TOKEN)
->>>>>>> 3d83627 (added discord bot commands)

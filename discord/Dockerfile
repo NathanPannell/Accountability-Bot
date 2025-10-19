@@ -12,5 +12,8 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy bot script
 COPY example_bot.py .
 
+# Copy .env file
+COPY .env .
+
 # Run the bot
 CMD ["python3", "example_bot.py"]
