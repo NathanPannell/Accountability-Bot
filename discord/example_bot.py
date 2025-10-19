@@ -3,7 +3,9 @@
 import asyncio
 import discord
 from dotenv import load_dotenv
+from discord.ext import commands
 import os
+import requests
 
 load_dotenv()
 DISCORD_TOKEN = os.getenv("DISCORD_TOKEN")
@@ -15,7 +17,14 @@ client = discord.Client(intents=intents)
 
 def send_message_to_db(message):
     # Placeholder function to simulate sending a message to a database
-    print(f"Message sent to database: {message.content}")
+    payload = {
+        "user": str(message.author.id),
+        "user_name": str(message.author.name),
+        "timestamp": str(message.created_at),
+        "content": message.content
+    }
+    # response = requests.post("http://your-database-endpoint", json=payload)
+
 
 async def start_timer(seconds, channel):
     await asyncio.sleep(seconds)
@@ -36,5 +45,6 @@ async def on_message(message):
     send_message_to_db(message)
 
     await start_timer(10, message.channel)
+
 
 client.run(DISCORD_TOKEN)
