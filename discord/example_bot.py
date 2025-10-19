@@ -1,7 +1,9 @@
+#!/usr/bin/env python3
 # This example requires the 'message_content' intent.
 
 import asyncio
 import discord
+from discord.ext import commands
 from dotenv import load_dotenv
 from discord.ext import commands
 import os
@@ -13,7 +15,7 @@ DISCORD_TOKEN = os.getenv("DISCORD_TOKEN")
 intents = discord.Intents.default()
 intents.message_content = True
 
-client = discord.Client(intents=intents)
+bot = commands.Bot(command_prefix='!', intents=intents)
 
 def send_message_to_db(message):
     # Placeholder function to simulate sending a message to a database
@@ -32,19 +34,31 @@ async def start_timer(seconds, channel):
     await channel.send('Please add another log entry!')
 
     
-@client.event
+@bot.event
 async def on_ready():
-    print(f'We have logged in as {client.user}')
+    print(f'We have logged in as {bot.user}')
 
-@client.event
+@bot.event
 async def on_message(message):
-    if message.author == client.user:
+    if message.author == bot.user:
         return
 
-    await message.channel.send('Log received!')
-    send_message_to_db(message)
+    if message.content.startswith("!"):
+        await bot.process_commands(message)
+    else:
+        await message.channel.send('Log received!')
+        send_message_to_db(message)
 
-    await start_timer(10, message.channel)
+        await start_timer(10, message.channel)
 
 
+<<<<<<< HEAD
 client.run(DISCORD_TOKEN)
+=======
+
+@bot.command()
+async def hello(ctx):
+    await ctx.send(f"Hello {ctx.author.mention}!")
+
+bot.run(DISCORD_TOKEN)
+>>>>>>> 3d83627 (added discord bot commands)
