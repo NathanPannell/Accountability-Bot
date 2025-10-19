@@ -21,8 +21,71 @@ DEFAULT_PERSONA = "drill"  # Can be "coach", "mindful", or "drill"
 
 intents = discord.Intents.default()
 intents.message_content = True
+intents.members = True
 
 bot = commands.Bot(command_prefix='!', intents=intents)
+
+async def send_welcome_message(member, ctx=None):
+    """Send welcome DM to a member. If DMs are disabled, post a notice in the server.
+    
+    Args:
+        member: The discord.Member to send the welcome message to
+        ctx: Optional command context (if called from a command)
+    """
+    welcome_text = f"""
+👋 Hey {member.name}! Welcome to the server!
+
+I'm your personal productivity coach. I help you track your daily progress and keep you accountable.
+
+**Try sending me a message about what you're working on right now!**
+
+Example: "Just finished my morning workout" or "Starting work on my project"
+    """.strip()
+    
+    try:
+        await member.send(welcome_text)
+        # If called from a command, acknowledge in the channel
+        if ctx:
+            await ctx.send(f"✅ {member.mention}, I've sent you a welcome DM!")
+    except discord.Forbidden:
+        # Can't DM the user; notify in a server channel
+        notice = f"{member.mention}, I couldn't send you a DM. Please enable DMs from server members to receive the welcome message."
+        
+        # If called from a command, send the notice there
+        if ctx:
+            await ctx.send(notice)
+        else:
+            # Called from on_member_join, find an appropriate channel
+            guild = member.guild
+            target_channel = None
+            
+            # Prefer the guild's system channel if available and writable
+            if guild.system_channel and guild.system_channel.permissions_for(guild.me).send_messages:
+                target_channel = guild.system_channel
+            else:
+                # Fallback: find the first text channel the bot can send messages in
+                for ch in guild.text_channels:
+                    if ch.permissions_for(guild.me).send_messages:
+                        target_channel = ch
+                        break
+            
+            if target_channel:
+                await target_channel.send(notice)
+            else:
+                # As a last resort, log to console
+                print(f"Couldn't DM {member.name} and found no channel to notify them in {guild.name}.")
+
+
+@bot.event
+async def on_member_join(member):
+    """Send welcome DM when someone joins the server."""
+    await send_welcome_message(member)
+
+
+@bot.command()
+async def welcome(ctx):
+    """Send a welcome DM to the user who invoked the command."""
+    await send_welcome_message(ctx.author, ctx=ctx)
 
 def post_user_message_and_get_response(content, user_id, persona=DEFAULT_PERSONA):
     """
