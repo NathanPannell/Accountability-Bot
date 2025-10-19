@@ -113,7 +113,7 @@ async def on_message(message):
             
             # Schedule followup message
             timeout_seconds = bot_response.get("timeout_seconds", 900)  # Default 15 min
-            followup_message = bot_response.get("followup_message", "How did it go?")
+            followup_message = bot_response.get("followup_message", "How did it go?") + f"\nI'll check back in {timeout_seconds} seconds."
             
             # Create background task for followup
             asyncio.create_task(

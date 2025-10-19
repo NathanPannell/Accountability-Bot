@@ -187,9 +187,9 @@ async def get_summary_by_discord_id_and_date(
     - persona: "coach", "mindful", or "drill" (default: "mindful")
     """
     # First, check if summary already exists
-    summary_data = summaries_collection.find_one({"_id.discordId": discord_id, "_id.date": date_str})
-    if summary_data:
-        return Summary.from_mongo_dict(summary_data)
+    # summary_data = summaries_collection.find_one({"_id.discordId": discord_id, "_id.date": date_str})
+    # if summary_data:
+    #     return Summary.from_mongo_dict(summary_data)
     
     # Summary doesn't exist, fetch entries for that day
     try:
@@ -248,7 +248,7 @@ async def get_summary_by_discord_id_and_date(
             notes=f"Generated from {len(entries_list)} entries"
         )
         
-        summaries_collection.insert_one(new_summary.model_dump(by_alias=True, exclude_unset=True))
+        # summaries_collection.insert_one(new_summary.model_dump(by_alias=True, exclude_unset=True))
         return new_summary
         
     except ValueError as e:
