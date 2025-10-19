@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 Run the api manually (gets around Windows localhost issue):
 - `cd api`
 - `pip install -r requirements.txt`
