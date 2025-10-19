@@ -1,0 +1,26 @@
+services:
+  api:
+    build: ./api
+    container_name: uvic-hackathon-api
+    ports:
+      - "8008:8000"
+    networks:
+      - hackathon-network
+    restart: unless-stopped
+    environment:
+      - PYTHONPATH=/app
+
+  # discord:
+  #   build: ./discord
+  #   container_name: uvic-hackathon-discord
+  #   networks:
+  #     - hackathon-network
+  #   depends_on:
+  #     - api
+  #   restart: unless-stopped
+  #   environment:
+  #     - PYTHONPATH=/app
+
+networks:
+  hackathon-network:
+    driver: bridge
