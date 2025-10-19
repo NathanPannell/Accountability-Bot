@@ -14,7 +14,9 @@ import requests
 
 load_dotenv()
 DISCORD_TOKEN = os.getenv("DISCORD_TOKEN")
-ECHO_API_URL = "http://127.0.0.1:8000/"
+API_HOST = os.getenv("API_HOST", "uvic-hackathon-api")
+API_PORT = os.getenv("API_PORT", "8000")
+ECHO_API_URL = f"http://{API_HOST}:{API_PORT}/"
 DEFAULT_PERSONA = "drill"  # Can be "coach", "mindful", or "drill"
 
 intents = discord.Intents.default()
@@ -74,9 +76,29 @@ async def send_bot_message(message, user_id, channel):
     post_bot_message(message, user_id)
     await channel.send(message)
 
+def format_time_duration(seconds):
+    """Convert seconds to a human-readable time format."""
+    if seconds < 60:
+        return f"{seconds} seconds"
+    elif seconds < 3600:  # Less than 1 hour
+        minutes = seconds // 60
+        remaining_seconds = seconds % 60
+        if remaining_seconds == 0:
+            return f"{minutes} minute{'s' if minutes != 1 else ''}"
+        else:
+            return f"{minutes}m{remaining_seconds}s"
+    else:  # 1 hour or more
+        hours = seconds // 3600
+        remaining_minutes = (seconds % 3600) // 60
+        if remaining_minutes == 0:
+            return f"{hours} hour{'s' if hours != 1 else ''}"
+        else:
+            return f"{hours}h{remaining_minutes}m"
+
 async def schedule_followup_message(message, user_id, channel, delay_seconds):
     """Schedule a followup message to be sent after a delay."""
-    print(f"⏰ Scheduling followup message in {delay_seconds} seconds")
+    formatted_time = format_time_duration(delay_seconds)
+    print(f"⏰ Scheduling followup message in {formatted_time}")
     await asyncio.sleep(delay_seconds)
     await send_bot_message(message, user_id, channel)
 
@@ -108,12 +130,14 @@ async def on_message(message):
             bot_response = response_data["bot_response"]
             
             # Send immediate reply
-            initial_reply = bot_response.get("reply", "Log received!")
+            timeout_seconds = bot_response.get("timeout_seconds", 30)  # Default 30 seconds
+            formatted_time = format_time_duration(timeout_seconds)
+
+            initial_reply = bot_response.get("reply", "Log received!")  + f"\nI'll check back in {formatted_time}."
             await send_bot_message(initial_reply, user_id, message.channel)
             
             # Schedule followup message
-            timeout_seconds = bot_response.get("timeout_seconds", 900)  # Default 15 min
-            followup_message = bot_response.get("followup_message", "How did it go?") + f"\nI'll check back in {timeout_seconds} seconds."
+            followup_message = bot_response.get("followup_message", "How did it go?")
             
             # Create background task for followup
             asyncio.create_task(

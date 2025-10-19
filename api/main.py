@@ -11,9 +11,10 @@ import re
 from dotenv import load_dotenv
 
 # Add path to import from llm directory
-sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'llm'))
+sys.path.append(os.path.join(os.path.dirname(__file__), 'llm'))
 from summarizer import generate_summarizer
 from oneTurnCall import generate_one_turn_response
+from tts import text_to_speech
 
 # Load environment variables
 load_dotenv()
@@ -89,6 +90,7 @@ class Summary(BaseModel):
     id: Optional[SummaryId] = Field(None, alias="_id")
     content: str
     notes: Optional[str] = None
+    audio_file_path: Optional[str] = None
     
     @classmethod
     def from_mongo_dict(cls, data: dict):
@@ -175,7 +177,8 @@ async def get_summary_by_discord_id_and_date(
     discord_id: str, 
     date_str: str,
     summary_length: str = "short",  # Query parameter: short, medium, long
-    persona: str = "drill"  # Query parameter: coach, mindful, drill
+    persona: str = "drill",  # Query parameter: coach, mindful, drill
+    voice: str = "alloy"  # Query parameter: alloy, echo, fable, onyx, nova, shimmer
 ):
     """
     Retrieves a single summary by Discord ID and date (YYYY-MM-DD) from MongoDB.
@@ -184,7 +187,8 @@ async def get_summary_by_discord_id_and_date(
     
     Query parameters:
     - summary_length: "short", "medium", or "long" (default: "short")
-    - persona: "coach", "mindful", or "drill" (default: "mindful")
+    - persona: "coach", "mindful", or "drill" (default: "drill")
+    - voice: "alloy", "echo", "fable", "onyx", "nova", or "shimmer" (default: "alloy")
     """
     # First, check if summary already exists
     # summary_data = summaries_collection.find_one({"_id.discordId": discord_id, "_id.date": date_str})
@@ -213,10 +217,24 @@ async def get_summary_by_discord_id_and_date(
         # If no entries exist for that day
         if not entries_list:
             summary_content = f"No entries found for {date_str}. Start journaling to get your daily summary!"
+            
+            # Generate audio file for the "no entries" message
+            audio_file_path = None
+            try:
+                audio_file_path = await text_to_speech(
+                    text=summary_content,
+                    voice=voice,
+                    user=discord_id,
+                    custom_hash=date_str.replace("-", "")
+                )
+            except Exception as e:
+                print(f"Warning: Failed to generate audio file: {e}")
+            
             new_summary = Summary(
                 id=SummaryId(discordId=discord_id, date=date_str),
                 content=summary_content,
-                notes="No entries available"
+                notes="No entries available",
+                audio_file_path=audio_file_path
             )
             summaries_collection.insert_one(new_summary.model_dump(by_alias=True, exclude_unset=True))
             return new_summary
@@ -241,12 +259,28 @@ async def get_summary_by_discord_id_and_date(
         if not summary_content:
             raise HTTPException(status_code=500, detail="Failed to generate summary")
         
+        # Generate audio file using TTS
+        audio_file_path = None
+        try:
+            audio_file_path = await text_to_speech(
+                text=summary_content,
+                voice=voice,
+                user=discord_id,
+                custom_hash=date_str.replace("-", "")
+            )
+        except Exception as e:
+            print(f"Warning: Failed to generate audio file: {e}")
+            # Don't fail the request if TTS fails, just continue without audio
+        
         # Save the generated summary to the database
         new_summary = Summary(
             id=SummaryId(discordId=discord_id, date=date_str),
             content=summary_content,
-            notes=f"Generated from {len(entries_list)} entries"
+            notes=f"Generated from {len(entries_list)} entries",
+            audio_file_path=audio_file_path
         )
+
+        
         
         # summaries_collection.insert_one(new_summary.model_dump(by_alias=True, exclude_unset=True))
         return new_summary
@@ -295,6 +329,7 @@ async def get_entry_by_id(entry_id: str):
 
 def convert_time_to_seconds(time_str: str) -> int:
     """Convert time string like '2h', '30m', '2h30m' to seconds"""
+    print(f"Time string in main.py: {time_str}")
     if not time_str:
         return 900  # Default 15 minutes
     
@@ -309,8 +344,12 @@ def convert_time_to_seconds(time_str: str) -> int:
     minutes_match = re.search(r'(\d+)m', time_str.lower())
     if minutes_match:
         total_seconds += int(minutes_match.group(1)) * 60
-    
-    return total_seconds if total_seconds > 0 else 900  # Default to 15 minutes if nothing found
+
+    seconds_match = re.search(r'(\d+)s', time_str.lower())
+    if seconds_match:
+        total_seconds += int(seconds_match.group(1))
+    print(f"Total seconds in main.py: {total_seconds}")
+    return total_seconds if total_seconds > 0 else 60  # Default to 15 minutes if nothing found
 
 def get_last_n_entries(discord_id: str, n: int = 10) -> List[dict]:
     """Fetch the last N entries for a user"""
@@ -361,6 +400,7 @@ async def create_entry(entry: Entry, persona: str = "drill"):
                 user_message=entry.content,
                 persona=persona
             )
+            print(f"Response in main.py: {response}")
             
             if response:
                 # Convert time string to seconds

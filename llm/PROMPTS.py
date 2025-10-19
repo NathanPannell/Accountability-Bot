@@ -41,34 +41,46 @@ TONE: {persona_tone}
 EXAMPLE PROMPTS: {persona_examples}
 
 User message: "{user_message}"
-Time period: {time_period}
 
-IMPORTANT TIME LOGIC:
-- If the user mentioned a specific time in their message, use that time period
-- If NO time was mentioned, use the default time period of {default_time}
-- The follow-up message should reference the actual time period that will be used
+CRITICAL TIME EXTRACTION INSTRUCTIONS:
+Analyze the user's message carefully to determine the most relevant time period. Look for:
+
+1. **Future commitments or activities with specific timeframes** (MOST IMPORTANT):
+   - "I'll be back in 1 hour" → use "1h"
+   - "I have a meeting for the next 2 hours" → use "2h"
+   - "I'll be driving for 30 minutes" → use "30m"
+
+2. **Current activities with mentioned durations** (SECONDARY):
+   - "Working on coding for 30 minutes" → use "30m"
+   - "Taking a 15 minute break" → use "15m"
+
+3. **Past activities mentioned briefly** (IGNORE):
+   - "I grinded another 30 seconds" → IGNORE this time reference
+   - "I just finished a 10-minute workout" → IGNORE this time reference
+
+4. **No specific time mentioned** → use default "{default_time}"
+
+SMART CONTEXT ANALYSIS:
+- If multiple times are mentioned, prioritize the one related to FUTURE activities or commitments
+- Ignore past activities or brief mentions that aren't the main focus
+- Consider the overall context: what is the user planning to do next?
 
 Your task is to:
-1. Generate a brief, encouraging reply (1-2 sentences max) that matches your persona's tone
-2. Create the actual message that will be sent to the user after the time period ends (this is NOT asking when to check in, but the actual follow-up message)
-
-The follow-up message should:
-- Reference what they were doing
-- Ask about their experience/outcome
-- Match your persona's tone
-- Be engaging and natural
-- Reference the correct time period (either mentioned by user or default {default_time})
-
-Examples:
-- If they said "driving to mum's house for 2 hours", the follow-up after 2 hours should be like "How was the drive, soldier? Any obstacles you conquered?" (drill persona)
-- If they said "coding for 30 minutes", the follow-up after 30 minutes should be like "How did that coding session go? Any breakthroughs?" (coach persona)
-- If they said "working on project" (no time mentioned), the follow-up after {default_time} should be like "How did that project work go? Any progress to report?" (coach persona)
+1. Extract the most relevant time period from the user's message
+2. Generate a brief, encouraging reply (1-2 sentences max) that matches your persona's tone
+3. Create the actual follow-up message that will be sent after the extracted time period
 
 Respond in this exact JSON format:
 {{
     "reply": "Your encouraging response here",
+    "time": "extracted_time_period",
     "nextCheckIn": "The actual message to send after the time period"
 }}
+
+Examples:
+- "yeah i grinded another 30 seconds so im very happy. i gotta attend the judging ceremony now, though. ill be back in an hour" → time: "1h" (ignore the 30 seconds, focus on "ill be back in an hour")
+- "Working on coding for 30 minutes" → time: "30m"
+- "Just finished lunch, feeling energized" → time: "{default_time}" (no future time mentioned)
 
 Make sure your response matches the {persona_tone} tone and personality.
 """

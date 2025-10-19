@@ -1,25 +1,30 @@
 services:
   api:
-    build: ./api
+    build:
+      context: .
+      dockerfile: ./api/Dockerfile
     container_name: uvic-hackathon-api
     ports:
-      - "8008:8000"
+      - "${API_EXTERNAL_PORT:-8008}:${API_INTERNAL_PORT:-8000}"
     networks:
       - hackathon-network
     restart: unless-stopped
     environment:
       - PYTHONPATH=/app
+      - API_INTERNAL_PORT=${API_INTERNAL_PORT:-8000}
 
-  # discord:
-  #   build: ./discord
-  #   container_name: uvic-hackathon-discord
-  #   networks:
-  #     - hackathon-network
-  #   depends_on:
-  #     - api
-  #   restart: unless-stopped
-  #   environment:
-  #     - PYTHONPATH=/app
+  discord:
+    build: ./discord
+    container_name: uvic-hackathon-discord
+    networks:
+      - hackathon-network
+    depends_on:
+      - api
+    restart: unless-stopped
+    environment:
+      - PYTHONPATH=/app
+      - API_HOST=uvic-hackathon-api
+      - API_PORT=${API_INTERNAL_PORT:-8000}
 
 networks:
   hackathon-network:

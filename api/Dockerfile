@@ -5,16 +5,19 @@ FROM python:3.11-slim
 WORKDIR /app
 
 # Copy the requirements file into the container
-COPY requirements.txt .
+COPY api/requirements.txt .
 
 # Install any needed packages specified in requirements.txt
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy the current directory contents into the container at /app
-COPY . .
+# Copy the api directory contents into the container at /app
+COPY api/ .
 
-# Make port 8000 available to the world outside this container
-EXPOSE 8000
+# Copy the llm directory into the container
+COPY llm/ ./llm/
+
+# Make port available to the world outside this container
+EXPOSE ${API_INTERNAL_PORT:-8000}
 
 # Run uvicorn when the container launches
-CMD ["uvicorn", "main:app", "--reload"]
+CMD ["sh", "-c", "uvicorn main:app --host 0.0.0.0 --port ${API_INTERNAL_PORT:-8000} --reload"]

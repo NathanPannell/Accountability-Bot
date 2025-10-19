@@ -65,14 +65,14 @@ def extract_time_from_message(message):
     
     return None
 
-async def generate_one_turn_response(user_message, persona="coach", default_time="30 seconds"):
+async def generate_one_turn_response(user_message, persona="coach", default_time="30sec"):
     """
     Generate a one-turn response based on user message and persona.
     
     Args:
         user_message (str): The user's message
         persona (str): The persona to use ("coach", "mindful", "drill")
-        default_time (str): Default time period if no time is mentioned (default: "20 seconds")
+        default_time (str): Default time period if no time is mentioned (default: "30sec")
     
     Returns:
         dict: {
@@ -88,12 +88,6 @@ async def generate_one_turn_response(user_message, persona="coach", default_time
         
         persona_config = PERSONAS[persona]
         
-        # Extract time from message
-        extracted_time = extract_time_from_message(user_message)
-        
-        # Determine time period: use extracted time or default
-        time_period = extracted_time if extracted_time else default_time
-        
         # Create prompt for LLM using the template
         prompt = ONE_TURN_CALL_TEMPLATE.format(
             persona_name=persona_config["name"],
@@ -101,7 +95,7 @@ async def generate_one_turn_response(user_message, persona="coach", default_time
             persona_tone=persona_config["tone"],
             persona_examples=persona_config["examples"],
             user_message=user_message,
-            time_period=time_period,
+            time_period=default_time,  # Pass default time to LLM to use if no time found
             default_time=default_time
         )
 
@@ -111,7 +105,7 @@ async def generate_one_turn_response(user_message, persona="coach", default_time
         if not llm_response:
             return {
                 "reply": "Thanks for the update!",
-                "time": time_period,
+                "time": default_time,
                 "nextCheckIn": "What's next on your agenda?"
             }
         
@@ -120,14 +114,14 @@ async def generate_one_turn_response(user_message, persona="coach", default_time
             parsed_response = json.loads(llm_response.strip())
             return {
                 "reply": parsed_response.get("reply", "Thanks for the update!"),
-                "time": time_period,
+                "time": parsed_response.get("time", default_time),  # LLM now determines the time
                 "nextCheckIn": parsed_response.get("nextCheckIn", "What's next on your agenda?")
             }
         except json.JSONDecodeError:
             # Fallback if JSON parsing fails
             return {
                 "reply": llm_response.strip(),
-                "time": time_period,
+                "time": default_time,
                 "nextCheckIn": "What's next on your agenda?"
             }
             
@@ -135,7 +129,7 @@ async def generate_one_turn_response(user_message, persona="coach", default_time
         print(f"❌ Error generating response: {e}")
         return {
             "reply": "Thanks for the update!",
-            "time": time_period,
+            "time": default_time,
             "nextCheckIn": "What's next on your agenda?"
         }
 
@@ -149,7 +143,8 @@ async def main():
         "Just finished lunch, feeling energized",
         "Working on my project",
         "Reading a book",
-        "Cleaning my room"
+        "Cleaning my room",
+        "yeah i grinded another 30 seconds so im very happy. i gotta attend the judging ceremony now, though. ill be back in an hour"
     ]
     
     personas = ["drill"]
