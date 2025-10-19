@@ -7,11 +7,13 @@ from pymongo.errors import ConnectionFailure
 from bson import ObjectId
 import os
 import sys
+import re
 from dotenv import load_dotenv
 
 # Add path to import from llm directory
 sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'llm'))
 from summarizer import generate_summarizer
+from oneTurnCall import generate_one_turn_response
 
 # Load environment variables
 load_dotenv()
@@ -110,6 +112,19 @@ class Entry(BaseModel):
         if "_id" in data and isinstance(data["_id"], ObjectId):
             data["_id"] = str(data["_id"])
         return cls(**data)
+
+
+class BotResponse(BaseModel):
+    """Response from the bot for a one-turn call"""
+    reply: str
+    timeout_seconds: int
+    followup_message: str
+
+
+class EntryResponse(BaseModel):
+    """Response when creating an entry"""
+    entry: Entry
+    bot_response: Optional[BotResponse] = None
 
 
 @app.get("/health")
@@ -278,19 +293,93 @@ async def get_entry_by_id(entry_id: str):
     
     raise HTTPException(status_code=404, detail="Entry not found")
 
-@app.post("/entries", response_model=Entry, status_code=201)
-async def create_entry(entry: Entry):
+def convert_time_to_seconds(time_str: str) -> int:
+    """Convert time string like '2h', '30m', '2h30m' to seconds"""
+    if not time_str:
+        return 900  # Default 15 minutes
+    
+    total_seconds = 0
+    
+    # Match hours
+    hours_match = re.search(r'(\d+)h', time_str.lower())
+    if hours_match:
+        total_seconds += int(hours_match.group(1)) * 3600
+    
+    # Match minutes
+    minutes_match = re.search(r'(\d+)m', time_str.lower())
+    if minutes_match:
+        total_seconds += int(minutes_match.group(1)) * 60
+    
+    return total_seconds if total_seconds > 0 else 900  # Default to 15 minutes if nothing found
+
+def get_last_n_entries(discord_id: str, n: int = 10) -> List[dict]:
+    """Fetch the last N entries for a user"""
+    entries_cursor = entries_collection.find({
+        "discordId": discord_id
+    }).sort("timestamp", -1).limit(n)
+    
+    return list(entries_cursor)
+
+@app.post("/entries", response_model=EntryResponse, status_code=201)
+async def create_entry(entry: Entry, persona: str = "drill"):
     """
     Accepts an entry in JSON format and creates a new entry in MongoDB.
-    MongoDB will auto-generate the _id.
+    If the entry is from a user, generates a bot response using the last 10 entries.
+    
+    Query parameters:
+    - persona: "coach", "mindful", or "drill" (default: "drill")
+    
+    Returns the created entry and bot response with:
+    - reply: Initial message to send immediately
+    - timeout_seconds: Time to wait before sending followup
+    - followup_message: Message to send after timeout
     """
     entry_dict = entry.model_dump(by_alias=True, exclude_unset=True)
     if "_id" in entry_dict:
         del entry_dict["_id"]  # Let MongoDB generate the ID
     
+    # Save the entry to MongoDB
     result = entries_collection.insert_one(entry_dict)
     entry.id = str(result.inserted_id)
-    return entry
+    
+    # Only generate bot response if this is a user entry
+    bot_response = None
+    if entry.role == "user":
+        try:
+            # Fetch the last 10 entries for this user (including the one just added)
+            last_entries_cursor = entries_collection.find({
+                "discordId": entry.discordId
+            }).sort("timestamp", -1).limit(10)
+            
+            last_entries = list(last_entries_cursor)
+            
+            # Convert entries to format for context (optional - could be used for more advanced responses)
+            # For now, we'll just use the current message for the one-turn response
+            
+            # Generate one-turn response
+            response = await generate_one_turn_response(
+                user_message=entry.content,
+                persona=persona
+            )
+            
+            if response:
+                # Convert time string to seconds
+                timeout_seconds = convert_time_to_seconds(response.get("time"))
+                
+                bot_response = BotResponse(
+                    reply=response.get("reply", "Thanks for the update!"),
+                    timeout_seconds=timeout_seconds,
+                    followup_message=response.get("nextCheckIn", "What's next on your agenda?")
+                )
+        except Exception as e:
+            print(f"Error generating bot response: {e}")
+            # Don't fail the request if bot response generation fails
+            # Just return without bot_response
+    
+    return EntryResponse(
+        entry=entry,
+        bot_response=bot_response
+    )
 
 @app.get("/users/{discord_id}/entries", response_model=List[Entry])
 async def get_entries_for_user(discord_id: str):
