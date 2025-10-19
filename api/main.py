@@ -107,24 +107,14 @@ class Entry(BaseModel):
         return cls(**data)
 
 
-@app.get("/")
+@app.get("/health")
 async def read_root():
     return {
-        "message": "Welcome to the Echo API!",
-        "mongodb_connected": client is not None
+        "status": "UP",
+        "mongodb": "CONNECTED" if client is not None else "NOT CONNECTED"
     }
 
 # --- USER Endpoints ---
-@app.get("/users", response_model=List[User])
-async def get_all_users():
-    """
-    Retrieves a list of all users from MongoDB.
-    """
-    users = []
-    for doc in users_collection.find():
-        users.append(User.from_mongo_dict(doc))
-    return users
-
 @app.get("/users/{discord_id}", response_model=User)
 async def get_user_by_discord_id(discord_id: str):
     """
@@ -160,16 +150,6 @@ async def create_user(user: User):
     return user
 
 # --- SUMMARY Endpoints ---
-@app.get("/summaries", response_model=List[Summary])
-async def get_all_summaries():
-    """
-    Retrieves a list of all summaries from MongoDB.
-    """
-    summaries = []
-    for doc in summaries_collection.find():
-        summaries.append(Summary.from_mongo_dict(doc))
-    return summaries
-
 @app.get("/summaries/{discord_id}/{date_str}", response_model=Summary)
 async def get_summary_by_discord_id_and_date(discord_id: str, date_str: str):
     """
@@ -204,16 +184,6 @@ async def create_summary(summary: Summary):
     return summary
 
 # --- ENTRY Endpoints ---
-@app.get("/entries", response_model=List[Entry])
-async def get_all_entries():
-    """
-    Retrieves a list of all entries from MongoDB.
-    """
-    entries = []
-    for doc in entries_collection.find():
-        entries.append(Entry.from_mongo_dict(doc))
-    return entries
-
 @app.get("/entries/{entry_id}", response_model=Entry)
 async def get_entry_by_id(entry_id: str):
     """
