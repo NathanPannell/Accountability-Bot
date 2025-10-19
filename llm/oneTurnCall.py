@@ -144,7 +144,8 @@ async def main():
         "Working on my project",
         "Reading a book",
         "Cleaning my room",
-        "yeah i grinded another 30 seconds so im very happy. i gotta attend the judging ceremony now, though. ill be back in an hour"
+        "yeah i grinded another 30 seconds so im very happy. i gotta attend the judging ceremony now, though. ill be back in an hour",
+        "I've been grinding on a hackathon since past 2 hours"
     ]
     
     personas = ["drill"]

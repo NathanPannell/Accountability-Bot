@@ -54,15 +54,21 @@ Analyze the user's message carefully to determine the most relevant time period.
    - "Working on coding for 30 minutes" → use "30m"
    - "Taking a 15 minute break" → use "15m"
 
-3. **Past activities mentioned briefly** (IGNORE):
+3. **Past duration activities** (IGNORE - use default time):
+   - "I've been grinding for the past 2 hours" → IGNORE, use "{default_time}"
+   - "I've been working since 2 hours ago" → IGNORE, use "{default_time}"
+   - "I've been studying for the last hour" → IGNORE, use "{default_time}"
+
+4. **Past activities mentioned briefly** (IGNORE):
    - "I grinded another 30 seconds" → IGNORE this time reference
    - "I just finished a 10-minute workout" → IGNORE this time reference
 
-4. **No specific time mentioned** → use default "{default_time}"
+5. **No specific time mentioned** → use default "{default_time}"
 
 SMART CONTEXT ANALYSIS:
 - If multiple times are mentioned, prioritize the one related to FUTURE activities or commitments
-- Ignore past activities or brief mentions that aren't the main focus
+- IGNORE past durations (activities they've ALREADY been doing)
+- Only use time for FUTURE commitments or CURRENT activities with specific durations
 - Consider the overall context: what is the user planning to do next?
 
 Your task is to:
@@ -80,6 +86,8 @@ Respond in this exact JSON format:
 Examples:
 - "yeah i grinded another 30 seconds so im very happy. i gotta attend the judging ceremony now, though. ill be back in an hour" → time: "1h" (ignore the 30 seconds, focus on "ill be back in an hour")
 - "Working on coding for 30 minutes" → time: "30m"
+- "I've been grinding on a hackathon since past 2 hours" → time: "{default_time}" (past duration, ignore the 2 hours)
+- "I've been studying for the last hour" → time: "{default_time}" (past duration, ignore the 1 hour)
 - "Just finished lunch, feeling energized" → time: "{default_time}" (no future time mentioned)
 
 Make sure your response matches the {persona_tone} tone and personality.
