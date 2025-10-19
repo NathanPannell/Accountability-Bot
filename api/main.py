@@ -1,4 +1,5 @@
 from fastapi import FastAPI, HTTPException
+from fastapi.responses import FileResponse
 from pydantic import BaseModel, Field, ConfigDict
 from typing import List, Optional
 from datetime import datetime, time
@@ -135,6 +136,26 @@ async def read_root():
         "status": "UP",
         "mongodb": "CONNECTED" if client is not None else "NOT CONNECTED"
     }
+
+@app.get("/audio/{filename}")
+async def get_audio_file(filename: str):
+    """
+    Serve audio files for Discord bot.
+    """
+    # Construct the full path to the audio file
+    audio_path = os.path.join("audio", filename)
+    
+    # Check if file exists
+    if not os.path.exists(audio_path):
+        print(f"❌ Audio file not found: {audio_path}")
+        raise HTTPException(status_code=404, detail="Audio file not found")
+    
+    print(f"🎵 Serving audio file: {audio_path}")
+    return FileResponse(
+        path=audio_path,
+        media_type="audio/mpeg",
+        filename=filename
+    )
 
 # --- USER Endpoints ---
 @app.get("/users/{discord_id}", response_model=User)

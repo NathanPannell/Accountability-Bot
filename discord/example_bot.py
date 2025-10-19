@@ -140,18 +140,36 @@ async def send_bot_message(message, user_id, channel):
     await channel.send(message)
 
 async def send_audio_file(ctx, audio_file_path):
-    """Send an audio file to Discord channel."""
+    """Send an audio file to Discord channel by downloading from API."""
     try:
-        # Check if file exists
-        if not os.path.exists(audio_file_path):
-            print(f"❌ Audio file not found: {audio_file_path}")
-            await ctx.send("📢 Audio file not found.")
+        # Extract filename from the path
+        filename = os.path.basename(audio_file_path)
+        
+        # Download audio file from API
+        print(f"🎵 Downloading audio file from API: {filename}")
+        response = requests.get(f"{ECHO_API_URL}audio/{filename}")
+        
+        if response.status_code != 200:
+            print(f"❌ Failed to download audio file: HTTP {response.status_code}")
+            await ctx.send("📢 Audio file not available.")
             return
         
+        # Save to temporary file
+        temp_file_path = f"temp_{filename}"
+        with open(temp_file_path, "wb") as f:
+            f.write(response.content)
+        
         # Send the audio file
-        audio_file = discord.File(audio_file_path, filename="summary.mp3")
+        audio_file = discord.File(temp_file_path, filename="summary.mp3")
         await ctx.send("🎵 Here's your daily summary audio:", file=audio_file)
-        print(f"✅ Audio file sent successfully: {audio_file_path}")
+        print(f"✅ Audio file sent successfully: {filename}")
+        
+        # Clean up temporary file
+        try:
+            os.remove(temp_file_path)
+            print(f"🧹 Cleaned up temporary file: {temp_file_path}")
+        except Exception as cleanup_error:
+            print(f"⚠️ Failed to clean up temporary file: {cleanup_error}")
         
     except Exception as e:
         print(f"❌ Error sending audio file: {e}")
@@ -271,9 +289,10 @@ async def summary(ctx, persona: str = DEFAULT_PERSONA, voice: str = "alloy"):
                 await send_audio_file(ctx, audio_file_path)
             except Exception as e:
                 print(f"❌ Failed to send audio file: {e}")
-                await ctx.send("📢 Summary audio is available but couldn't be sent.")
+                await ctx.send("📢 Summary audio is available but couldn't be sent. Try again later.")
         else:
             print(f"ℹ️ No audio file available for user {user_id} on {summary_date}")
+            await ctx.send("📝 Text summary sent. Audio version not available.")
             
     except Exception as e:
         error_msg = f"❌ Error getting summary: {str(e)}"
