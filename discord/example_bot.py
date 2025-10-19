@@ -139,6 +139,25 @@ async def send_bot_message(message, user_id, channel):
     post_bot_message(message, user_id)
     await channel.send(message)
 
+async def send_audio_file(ctx, audio_file_path):
+    """Send an audio file to Discord channel."""
+    try:
+        # Check if file exists
+        if not os.path.exists(audio_file_path):
+            print(f"❌ Audio file not found: {audio_file_path}")
+            await ctx.send("📢 Audio file not found.")
+            return
+        
+        # Send the audio file
+        audio_file = discord.File(audio_file_path, filename="summary.mp3")
+        await ctx.send("🎵 Here's your daily summary audio:", file=audio_file)
+        print(f"✅ Audio file sent successfully: {audio_file_path}")
+        
+    except Exception as e:
+        print(f"❌ Error sending audio file: {e}")
+        await ctx.send("📢 Failed to send audio file.")
+        raise
+
 def format_time_duration(seconds):
     """Convert seconds to a human-readable time format."""
     if seconds < 60:
@@ -221,18 +240,41 @@ async def hello(ctx):
     await ctx.send(f"Hello {ctx.author.mention}! 👋")
 
 @bot.command()
-async def summary(ctx, persona: str = DEFAULT_PERSONA):
+async def summary(ctx, persona: str = DEFAULT_PERSONA, voice: str = "alloy"):
     """
     Get your daily summary.
-    Usage: !summary [persona]
+    Usage: !summary [persona] [voice]
     Personas: coach, mindful, drill
+    Voices: alloy, echo, fable, onyx, nova, shimmer
     """
     user_id = str(ctx.author.id)
     summary_date = datetime.datetime.now().strftime("%Y-%m-%d")
     
+    # Validate voice parameter
+    valid_voices = ["alloy", "echo", "fable", "onyx", "nova", "shimmer"]
+    if voice not in valid_voices:
+        await ctx.send(f"❌ Invalid voice. Choose from: {', '.join(valid_voices)}")
+        return
+    
     try:
-        summary_content = get_summary(user_id, summary_date, persona)
+        summary_data = get_summary(user_id, summary_date, persona, voice)
+        summary_content = summary_data.get("content", "No summary available")
+        
+        # Send text summary
         await send_bot_message(summary_content, user_id, ctx.channel)
+        
+        # Send audio file if available
+        audio_file_path = summary_data.get("audio_file_path")
+        if audio_file_path:
+            try:
+                print(f"🎵 Sending audio file to Discord: {audio_file_path}")
+                await send_audio_file(ctx, audio_file_path)
+            except Exception as e:
+                print(f"❌ Failed to send audio file: {e}")
+                await ctx.send("📢 Summary audio is available but couldn't be sent.")
+        else:
+            print(f"ℹ️ No audio file available for user {user_id} on {summary_date}")
+            
     except Exception as e:
         error_msg = f"❌ Error getting summary: {str(e)}"
         print(error_msg)
@@ -258,14 +300,14 @@ async def persona(ctx, new_persona: str = None):
     else:
         await ctx.send(f"❌ Invalid persona. Choose from: {', '.join(valid_personas)}")
 
-def get_summary(user_id, date, persona=DEFAULT_PERSONA):
+def get_summary(user_id, date, persona=DEFAULT_PERSONA, voice="alloy"):
     """Fetch summary from the API."""
     response = requests.get(
-        f'{ECHO_API_URL}summaries/{user_id}/{date}?persona={persona}'
+        f'{ECHO_API_URL}summaries/{user_id}/{date}?persona={persona}&voice={voice}'
     )
     
     if response.status_code == 200:
-        return response.json().get("content", "No summary available")
+        return response.json()  # Return full JSON response
     else:
         raise Exception(f"API returned status code {response.status_code}")
 
