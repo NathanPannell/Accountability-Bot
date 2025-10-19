@@ -17,4 +17,4 @@ COPY . .
 EXPOSE 8000
 
 # Run uvicorn when the container launches
-CMD ["uvicorn", "api.main:app", "--reload"]
+CMD ["uvicorn", "main:app", "--reload"]
