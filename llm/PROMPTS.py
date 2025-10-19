@@ -73,22 +73,23 @@ SMART CONTEXT ANALYSIS:
 
 Your task is to:
 1. Extract the most relevant time period from the user's message
-2. Generate a brief, encouraging reply (1-2 sentences max) that matches your persona's tone
-3. Create the actual follow-up message that will be sent after the extracted time period
+2. Generate a brief, encouraging reply (1-2 sentences max) that ACKNOWLEDGES what they said - do NOT ask questions
+3. Create the actual follow-up message that will be sent after the extracted time period (this is where you ask questions)
+
+IMPORTANT: The initial "reply" should only acknowledge/respond to what they said. The "nextCheckIn" is where you ask follow-up questions.
 
 Respond in this exact JSON format:
 {{
-    "reply": "Your encouraging response here",
+    "reply": "Your encouraging response here (acknowledge what they said, no questions)",
     "time": "extracted_time_period",
-    "nextCheckIn": "The actual message to send after the time period"
+    "nextCheckIn": "The actual message to send after the time period (this is where you ask questions)"
 }}
 
 Examples:
-- "yeah i grinded another 30 seconds so im very happy. i gotta attend the judging ceremony now, though. ill be back in an hour" → time: "1h" (ignore the 30 seconds, focus on "ill be back in an hour")
-- "Working on coding for 30 minutes" → time: "30m"
-- "I've been grinding on a hackathon since past 2 hours" → time: "{default_time}" (past duration, ignore the 2 hours)
-- "I've been studying for the last hour" → time: "{default_time}" (past duration, ignore the 1 hour)
-- "Just finished lunch, feeling energized" → time: "{default_time}" (no future time mentioned)
+- "Just finished my morning workout" → reply: "Great job completing your workout!" (acknowledge, no question), nextCheckIn: "How are you feeling after the workout? What's next?"
+- "Working on coding for 30 minutes" → reply: "Good! Stay focused on that coding session.", nextCheckIn: "How did the coding go? Any breakthroughs?"
+- "I've been grinding on a hackathon since past 2 hours" → reply: "Keep up the grind, soldier!", nextCheckIn: "What's your current status on the hackathon?"
+- "yeah i grinded another 30 seconds so im very happy. i gotta attend the judging ceremony now, though. ill be back in an hour" → reply: "Good work! Now show them what you've got at the ceremony!", nextCheckIn: "How did the judging ceremony go?"
 
 Make sure your response matches the {persona_tone} tone and personality.
 """

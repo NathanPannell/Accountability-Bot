@@ -204,6 +204,9 @@ async def get_summary_by_discord_id_and_date(
         end_of_day = date_obj.replace(hour=23, minute=59, second=59, microsecond=999999)
         
         # Fetch all entries for this user on this day
+        print(f"🔍 Fetching entries for user {discord_id} on {date_str}...")
+        print(f"🔍 Date range: {start_of_day} to {end_of_day}")
+        
         entries_cursor = entries_collection.find({
             "discordId": discord_id,
             "timestamp": {
@@ -213,22 +216,34 @@ async def get_summary_by_discord_id_and_date(
         }).sort("timestamp", 1)  # Sort by timestamp ascending
         
         entries_list = list(entries_cursor)
+        print(f"🔍 Found {len(entries_list)} entries for user {discord_id} on {date_str}")
         
         # If no entries exist for that day
         if not entries_list:
+            print(f"📭 No entries found for user {discord_id} on {date_str}, generating default message")
             summary_content = f"No entries found for {date_str}. Start journaling to get your daily summary!"
             
             # Generate audio file for the "no entries" message
             audio_file_path = None
             try:
+                print(f"🎵 Generating audio for user {discord_id} on {date_str}...")
+                print(f"🎵 Audio settings - Voice: {voice}, Text length: {len(summary_content)} chars")
+                
                 audio_file_path = await text_to_speech(
                     text=summary_content,
                     voice=voice,
                     user=discord_id,
                     custom_hash=date_str.replace("-", "")
                 )
+                
+                if audio_file_path:
+                    print(f"✅ Audio file generated successfully: {audio_file_path}")
+                else:
+                    print("⚠️ Audio file generation returned None")
+                    
             except Exception as e:
-                print(f"Warning: Failed to generate audio file: {e}")
+                print(f"❌ Failed to generate audio file for user {discord_id} on {date_str}: {e}")
+                print(f"❌ Audio generation error details: {type(e).__name__}: {str(e)}")
             
             new_summary = Summary(
                 id=SummaryId(discordId=discord_id, date=date_str),
@@ -250,6 +265,9 @@ async def get_summary_by_discord_id_and_date(
             })
         
         # Generate summary using the summarizer
+        print(f"📝 Generating {summary_length} summary for user {discord_id} on {date_str}...")
+        print(f"📝 Summary settings - Persona: {persona}, Entries count: {len(entries_for_summarizer)}")
+        
         summary_content = await generate_summarizer(
             entries_for_summarizer, 
             summary_length=summary_length,
@@ -257,22 +275,40 @@ async def get_summary_by_discord_id_and_date(
         )
         
         if not summary_content:
+            print(f"❌ Summary generation failed for user {discord_id} on {date_str}")
             raise HTTPException(status_code=500, detail="Failed to generate summary")
+        
+        print(f"✅ Summary generated successfully for user {discord_id} on {date_str}")
+        print(f"✅ Summary length: {len(summary_content)} characters")
         
         # Generate audio file using TTS
         audio_file_path = None
         try:
+            print(f"🎵 Generating audio for user {discord_id} on {date_str}...")
+            print(f"🎵 Audio settings - Voice: {voice}, Text length: {len(summary_content)} chars")
+            print(f"🎵 Summary preview: {summary_content[:100]}...")
+            
             audio_file_path = await text_to_speech(
                 text=summary_content,
                 voice=voice,
                 user=discord_id,
                 custom_hash=date_str.replace("-", "")
             )
+            
+            if audio_file_path:
+                print(f"✅ Audio file generated successfully: {audio_file_path}")
+            else:
+                print("⚠️ Audio file generation returned None")
+                
         except Exception as e:
-            print(f"Warning: Failed to generate audio file: {e}")
+            print(f"❌ Failed to generate audio file for user {discord_id} on {date_str}: {e}")
+            print(f"❌ Audio generation error details: {type(e).__name__}: {str(e)}")
             # Don't fail the request if TTS fails, just continue without audio
         
         # Save the generated summary to the database
+        print(f"💾 Creating summary object for user {discord_id} on {date_str}...")
+        print(f"💾 Summary includes {len(entries_list)} entries, audio: {'Yes' if audio_file_path else 'No'}")
+        
         new_summary = Summary(
             id=SummaryId(discordId=discord_id, date=date_str),
             content=summary_content,
@@ -280,7 +316,7 @@ async def get_summary_by_discord_id_and_date(
             audio_file_path=audio_file_path
         )
 
-        
+        print(f"✅ Summary object created successfully for user {discord_id} on {date_str}")
         
         # summaries_collection.insert_one(new_summary.model_dump(by_alias=True, exclude_unset=True))
         return new_summary
