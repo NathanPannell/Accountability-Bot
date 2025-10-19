@@ -1,0 +1,62 @@
+[
+  {
+    "timestamp": "2025-10-19T10:15:00Z",
+    "content": "Started working on the Echo backend API endpoints.",
+    "source": "text",
+    "role": "user"
+  },
+  {
+    "timestamp": "2025-10-19T10:45:00Z",
+    "content": "Writing schema documentation for MongoDB collections.",
+    "source": "button",
+    "role": "bot"
+  },
+  {
+    "timestamp": "2025-10-19T11:15:00Z",
+    "content": "Took a short break.",
+    "source": "button",
+    "role": "bot"
+  },
+  {
+    "timestamp": "2025-10-19T11:30:00Z",
+    "content": "Implemented user authentication middleware for the API.",
+    "source": "text",
+    "role": "user"
+  },
+  {
+    "timestamp": "2025-10-19T12:00:00Z",
+    "content": "Lunch break - grabbed a quick sandwich.",
+    "source": "button",
+    "role": "bot"
+  },
+  {
+    "timestamp": "2025-10-19T12:30:00Z",
+    "content": "Back to coding - working on database connection pooling.",
+    "source": "text",
+    "role": "user"
+  },
+  {
+    "timestamp": "2025-10-19T13:15:00Z",
+    "content": "Fixed a bug in the entry validation logic.",
+    "source": "button",
+    "role": "bot"
+  },
+  {
+    "timestamp": "2025-10-19T14:00:00Z",
+    "content": "Team meeting to discuss progress and next steps.",
+    "source": "text",
+    "role": "user"
+  },
+  {
+    "timestamp": "2025-10-19T14:30:00Z",
+    "content": "Coffee break - needed some caffeine boost.",
+    "source": "button",
+    "role": "bot"
+  },
+  {
+    "timestamp": "2025-10-19T15:00:00Z",
+    "content": "Started working on the Discord bot integration.",
+    "source": "text",
+    "role": "user"
+  }
+]

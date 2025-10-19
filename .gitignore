@@ -1,2 +1,5 @@
 *.env
 .idea/
+!.env.template
+__pycache__/
+*.mp3
