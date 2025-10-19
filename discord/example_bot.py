@@ -74,4 +74,14 @@ async def on_message(message):
 async def hello(ctx):
     await ctx.send(f"Hello {ctx.author.mention}!")
 
+@bot.command()
+async def summary(ctx):
+    user_id = str(ctx.author.id)
+    summary_date = datetime.datetime.now().strftime("%Y-%m-%d")
+    summary_content = get_summary(user_id, summary_date)
+    await send_message_to_channel(summary_content, str(ctx.author.id), ctx.channel)
+
+def get_summary(user_id, date):
+    return requests.get(f'{ECHO_API_URL}/summaries/{user_id}/{date}').json().get("content")
+
 bot.run(DISCORD_TOKEN)

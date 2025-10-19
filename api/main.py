@@ -154,12 +154,22 @@ async def create_user(user: User):
 async def get_summary_by_discord_id_and_date(discord_id: str, date_str: str):
     """
     Retrieves a single summary by Discord ID and date (YYYY-MM-DD) from MongoDB.
+    If not found, creates a new summary.
     """
     summary_data = summaries_collection.find_one({"_id.discordId": discord_id, "_id.date": date_str})
     if summary_data:
         return Summary.from_mongo_dict(summary_data)
     
-    raise HTTPException(status_code=404, detail="Summary not found")
+    # Create new summary if not found
+    summary_content = "new summary for " + discord_id + " on " + date_str
+    new_summary = Summary(
+        id=SummaryId(discordId=discord_id, date=date_str),
+        content=summary_content,
+        notes=None
+    )
+    
+    summaries_collection.insert_one(new_summary.model_dump(by_alias=True, exclude_unset=True))
+    return new_summary
 
 @app.post("/summaries", response_model=Summary, status_code=201)
 async def create_summary(summary: Summary):
