@@ -6,7 +6,12 @@ from pymongo import MongoClient
 from pymongo.errors import ConnectionFailure
 from bson import ObjectId
 import os
+import sys
 from dotenv import load_dotenv
+
+# Add path to import from llm directory
+sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'llm'))
+from summarizer import generate_summarizer
 
 # Load environment variables
 load_dotenv()
@@ -151,25 +156,90 @@ async def create_user(user: User):
 
 # --- SUMMARY Endpoints ---
 @app.get("/summaries/{discord_id}/{date_str}", response_model=Summary)
-async def get_summary_by_discord_id_and_date(discord_id: str, date_str: str):
+async def get_summary_by_discord_id_and_date(
+    discord_id: str, 
+    date_str: str,
+    summary_length: str = "short",  # Query parameter: short, medium, long
+    persona: str = "drill"  # Query parameter: coach, mindful, drill
+):
     """
     Retrieves a single summary by Discord ID and date (YYYY-MM-DD) from MongoDB.
-    If not found, creates a new summary.
+    If summary doesn't exist, fetches entries for that day and generates a new summary.
+    If no entries exist for that day, returns an appropriate message.
+    
+    Query parameters:
+    - summary_length: "short", "medium", or "long" (default: "short")
+    - persona: "coach", "mindful", or "drill" (default: "mindful")
     """
+    # First, check if summary already exists
     summary_data = summaries_collection.find_one({"_id.discordId": discord_id, "_id.date": date_str})
     if summary_data:
         return Summary.from_mongo_dict(summary_data)
     
-    # Create new summary if not found
-    summary_content = "new summary for " + discord_id + " on " + date_str
-    new_summary = Summary(
-        id=SummaryId(discordId=discord_id, date=date_str),
-        content=summary_content,
-        notes=None
-    )
-    
-    summaries_collection.insert_one(new_summary.model_dump(by_alias=True, exclude_unset=True))
-    return new_summary
+    # Summary doesn't exist, fetch entries for that day
+    try:
+        # Parse the date string to get start and end of day
+        from datetime import datetime as dt
+        date_obj = dt.strptime(date_str, "%Y-%m-%d")
+        start_of_day = date_obj.replace(hour=0, minute=0, second=0, microsecond=0)
+        end_of_day = date_obj.replace(hour=23, minute=59, second=59, microsecond=999999)
+        
+        # Fetch all entries for this user on this day
+        entries_cursor = entries_collection.find({
+            "discordId": discord_id,
+            "timestamp": {
+                "$gte": start_of_day,
+                "$lte": end_of_day
+            }
+        }).sort("timestamp", 1)  # Sort by timestamp ascending
+        
+        entries_list = list(entries_cursor)
+        
+        # If no entries exist for that day
+        if not entries_list:
+            summary_content = f"No entries found for {date_str}. Start journaling to get your daily summary!"
+            new_summary = Summary(
+                id=SummaryId(discordId=discord_id, date=date_str),
+                content=summary_content,
+                notes="No entries available"
+            )
+            summaries_collection.insert_one(new_summary.model_dump(by_alias=True, exclude_unset=True))
+            return new_summary
+        
+        # Convert MongoDB entries to format expected by summarizer
+        entries_for_summarizer = []
+        for entry in entries_list:
+            entries_for_summarizer.append({
+                "timestamp": entry["timestamp"].isoformat(),
+                "role": entry["role"],
+                "content": entry["content"],
+                "source": "entry"  # You can customize this based on your needs
+            })
+        
+        # Generate summary using the summarizer
+        summary_content = await generate_summarizer(
+            entries_for_summarizer, 
+            summary_length=summary_length,
+            persona=persona
+        )
+        
+        if not summary_content:
+            raise HTTPException(status_code=500, detail="Failed to generate summary")
+        
+        # Save the generated summary to the database
+        new_summary = Summary(
+            id=SummaryId(discordId=discord_id, date=date_str),
+            content=summary_content,
+            notes=f"Generated from {len(entries_list)} entries"
+        )
+        
+        summaries_collection.insert_one(new_summary.model_dump(by_alias=True, exclude_unset=True))
+        return new_summary
+        
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=f"Invalid date format. Use YYYY-MM-DD: {str(e)}")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error generating summary: {str(e)}")
 
 @app.post("/summaries", response_model=Summary, status_code=201)
 async def create_summary(summary: Summary):
