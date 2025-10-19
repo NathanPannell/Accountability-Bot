@@ -45,7 +45,7 @@ Time period: {time_period}
 
 IMPORTANT TIME LOGIC:
 - If the user mentioned a specific time in their message, use that time period
-- If NO time was mentioned, use the default time period of 15 minutes
+- If NO time was mentioned, use the default time period of {default_time}
 - The follow-up message should reference the actual time period that will be used
 
 Your task is to:
@@ -57,12 +57,12 @@ The follow-up message should:
 - Ask about their experience/outcome
 - Match your persona's tone
 - Be engaging and natural
-- Reference the correct time period (either mentioned by user or default 15 minutes)
+- Reference the correct time period (either mentioned by user or default {default_time})
 
 Examples:
 - If they said "driving to mum's house for 2 hours", the follow-up after 2 hours should be like "How was the drive, soldier? Any obstacles you conquered?" (drill persona)
 - If they said "coding for 30 minutes", the follow-up after 30 minutes should be like "How did that coding session go? Any breakthroughs?" (coach persona)
-- If they said "working on project" (no time mentioned), the follow-up after 15 minutes should be like "How did that project work go? Any progress to report?" (coach persona)
+- If they said "working on project" (no time mentioned), the follow-up after {default_time} should be like "How did that project work go? Any progress to report?" (coach persona)
 
 Respond in this exact JSON format:
 {{

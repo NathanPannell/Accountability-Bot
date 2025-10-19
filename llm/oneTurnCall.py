@@ -65,13 +65,14 @@ def extract_time_from_message(message):
     
     return None
 
-async def generate_one_turn_response(user_message, persona="coach"):
+async def generate_one_turn_response(user_message, persona="coach", default_time="30 seconds"):
     """
     Generate a one-turn response based on user message and persona.
     
     Args:
         user_message (str): The user's message
         persona (str): The persona to use ("coach", "mindful", "drill")
+        default_time (str): Default time period if no time is mentioned (default: "20 seconds")
     
     Returns:
         dict: {
@@ -90,8 +91,8 @@ async def generate_one_turn_response(user_message, persona="coach"):
         # Extract time from message
         extracted_time = extract_time_from_message(user_message)
         
-        # Determine time period: use extracted time or default to 15 minutes
-        time_period = extracted_time if extracted_time else "15 minutes"
+        # Determine time period: use extracted time or default
+        time_period = extracted_time if extracted_time else default_time
         
         # Create prompt for LLM using the template
         prompt = ONE_TURN_CALL_TEMPLATE.format(
@@ -100,7 +101,8 @@ async def generate_one_turn_response(user_message, persona="coach"):
             persona_tone=persona_config["tone"],
             persona_examples=persona_config["examples"],
             user_message=user_message,
-            time_period=time_period
+            time_period=time_period,
+            default_time=default_time
         )
 
         # Get LLM response
