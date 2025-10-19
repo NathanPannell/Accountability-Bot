@@ -1,6 +1,9 @@
-To run this file:
-1. `cd UVic-Hackathon-25/`
-2. `./api/.venv/Scripts/activate`
-3. `pip install fastapi "uvicorn[standard]"`
-4. `uvicorn api.main:app --reload`
-5. `open http://127.0.0.1:8000/docs`
+Run the api manually (gets around Windows localhost issue):
+- `cd api`
+- `pip install -r requirements.txt`
+- `uvicorn main:app --reload`
+
+Run the api in docker:
+- `cd api`
+- `docker build -t api .`
+- `docker run -p 8000:8000 api`
