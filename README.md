@@ -1,5 +1,28 @@
 # Productivity Discord Bot
 
-This is a discord bot named Echo which checks in with you regularly to help you keep track of what you care about! Echo can generate daily sumamries based on your check ins to help you understand how you're spending your time.
+This is Echo: the proactive accountability bot that checks in with you.
 
-Echo will prompt you to micro-journal on an interval you specify. It is flexible and reactive to your schedule.
+Echo encourages micro-journaling by prompting the user for updates throughout the day. 
+This uses the OpenAI API to generate relevant replies and follow-up messages with an intelligent timeout to determine when to reach out next.
+
+## Current Features
+
+- Dynamically timed follow-up messages
+- End-of-day summaries
+- Audio versions of summaries
+
+## Future Additions
+
+- Persistent long-term conversation memory
+- Better proactivity
+- Customizable user preferences
+- Quick-reply options
+- More messaging platform support (Telegram, Whatsapp, etc.)
+
+## Technology Stack
+
+- MongoDB Cloud
+- docker-compose
+- FastAPI
+- Discord API
+- OpenAI API
